@@ -7,9 +7,10 @@ import os.path
 
 class Main:
     def __init__(self):
-        self.arm_num = 10
+        self.arm_num = 100
         self.machine = Machine(self.arm_num)
         self.agent = Agent(self.machine)
+        self.used_arms = []         #used to reference which arms were actually used in gradient method
 
     @staticmethod
     def get_path(file_name):
@@ -27,31 +28,72 @@ class Main:
         for _ in range(num_iter):
             self.agent.reset()
             method(num_pull_per_iter)
-            plt.plot(self.agent.memory)
             method_str = self.method2str(method)
+            plt.plot(self.agent.memory,label=method_str[15:]) 
 
-            if method_str[15:] == 'randomly':           #to create the graphs and file names for different methods
-                plt.suptitle(f'{method_str}')
-                plt.savefig(self.get_path(f'{method_str}'))
-            elif method_str[15:] == 'greedily':
-                plt.suptitle(f'{method_str} with epsilon = {main.agent.epsilon:.2f}')
-                plt.savefig(self.get_path(f'{method_str}_{main.agent.epsilon:.2f}'))
-
-    def epsilon_trial(self):
-        main.agent.epsilon = 0
-        while main.agent.epsilon < 1:
-            main.trial(main.agent.pull_arm_greedily,1,200)
+    def epsilon_trial(self,iter=False,trials=1,tote_pulls=200):
+        if iter == True:
+            main.agent.epsilon = 0
+            while main.agent.epsilon < 1:
+                main.trial(main.agent.pull_arm_greedily,trials,tote_pulls)
+                print(f'Eps={main.agent.epsilon:.2f} -> {main.agent.score:.0f}')
+                main.agent.epsilon += 0.05
+        else:
+            main.trial(main.agent.pull_arm_greedily,trials,tote_pulls)
             print(f'Eps={main.agent.epsilon:.2f} -> {main.agent.score:.0f}')
-            main.agent.epsilon += 0.1
 
-    def random_trial(self,trials=1):
+    def random_trial(self,trials=1,tote_pulls=200):
         for _ in range(trials):
-            main.trial(main.agent.pull_arm_randomly,trials,200)
+            main.trial(main.agent.pull_arm_randomly,trials,tote_pulls)
+            print(f'Random Walk -> {main.agent.score:.0f}')
+
+    def gradient_trial(self,learning_rate=None,iter=False,trials=1,tote_pulls=200):
+        rate = 0.1
+        if iter:
+            while rate < learning_rate:
+                self.agent.time_step = rate
+                for _ in range(trials):
+                    main.trial(main.agent.pull_arm_gradiently,trials,tote_pulls)
+                    print(f'Gradient rate {self.agent.time_step}-> {main.agent.score:.0f}')
+                rate += 0.1
+        
+        elif learning_rate != None:
+            main.agent.learning_rate = learning_rate
+            main.trial(main.agent.pull_arm_gradiently,trials,tote_pulls)
+            print(f'Gradient rate {self.agent.time_step}-> {main.agent.score:.0f}')
+        else:
+            main.trial(main.agent.pull_arm_gradiently,trials,tote_pulls)
+            print(f'Gradient rate {self.agent.time_step}-> {main.agent.score:.0f}')
+
+    def compare_graph(self,tote_pulls):
+        plt.clf()
+        self.random_trial(tote_pulls=tote_pulls)
+        self.epsilon_trial(tote_pulls=tote_pulls)
+        self.gradient_trial(tote_pulls=tote_pulls)
+        plt.legend()
+        plt.suptitle('N Armed Bandit Methods')
+        plt.savefig(main.get_path('n_armed_bandit_methods'))
+
+    def preference_graph(self):
+        plt.clf()
+        for i in range(len(self.agent.probs_mem)):
+            flag = False        #use flags to only plot the arms that have non negligable probablities
+            for j in self.agent.probs_mem[i]:
+                if j > 1/(0.9*len(self.agent.probs_mem)):
+                    flag = True
+                    self.used_arms.append(self.machine.arms[i])
+                    break
+            if flag:
+                plt.plot(self.agent.probs_mem[i],label=f'Arm {i}')
+        plt.legend()
+        plt.suptitle('Arm Preferences')
+        plt.savefig(main.get_path('arm_preferences'))
 
 if __name__ == "__main__":
     main = Main()
-    main.random_trial()
-    main.epsilon_trial()
-
+    main.compare_graph(1000)
+    main.preference_graph()
+    for arm in main.used_arms:
+        print(arm)
 
 
