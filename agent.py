@@ -54,8 +54,13 @@ class Agent:
 
     def probability_calc(self):     #iterates through and updates all probabilities based on the current preference
         e_sum  = 0
-        for pref in self.prefs:
-            e_sum += m.exp(pref)
+        try:
+            for pref in self.prefs:
+                e_sum += m.exp(pref)
+        except:
+            for pref in self.prefs:
+                pref -= 500
+                e_sum += m.exp(pref)
         for ind in range(len(self.machine.arms)):
             self.probs[ind] = m.exp(self.prefs[ind])/e_sum
 

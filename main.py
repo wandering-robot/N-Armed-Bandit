@@ -4,18 +4,19 @@ from agent import Agent
 from random import randint
 from matplotlib import pyplot as plt
 import os.path
+import pathlib
 
 class Main:
     def __init__(self):
-        self.arm_num = 100
+        self.arm_num = 50
         self.machine = Machine(self.arm_num)
         self.agent = Agent(self.machine)
         self.used_arms = []         #used to reference which arms were actually used in gradient method
 
     @staticmethod
     def get_path(file_name):
-        save_path = r'C:\Users\ejbra\Desktop\N-Armed-Bandit\records'
-        complete_name = os.path.join(save_path,file_name+'.png')
+        abs_path = pathlib.Path(__file__).parent.absolute()
+        complete_name = os.path.join(abs_path,'records',file_name+'.png')
         return complete_name
 
     @staticmethod
@@ -91,7 +92,7 @@ class Main:
 
 if __name__ == "__main__":
     main = Main()
-    main.compare_graph(1000)
+    main.compare_graph(100)
     main.preference_graph()
     for arm in main.used_arms:
         print(arm)
